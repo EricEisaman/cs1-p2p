@@ -5,6 +5,7 @@ export default(()=>{
 
 AFRAME.registerComponent('p2p', {
   schema: {
+    ringtone: {default:'https://cdn.glitch.com/1c17f551-0c43-4849-b4b8-037e93bc3101%2Fringtone1.mp3?v=1581262788541'}
   },
   
   init: function(){
@@ -60,73 +61,11 @@ AFRAME.registerComponent('p2p', {
 
           CS1.log(`P2P offer received from ${d.id}`)
         
-          //CS1.p2p.mode = (CS1.device=='Oculus Quest')?'voice':d.mode;
-        
-          CS1.log(`Setting peer as new responder.`)
-          //creating responder peer
-          CS1.p2p.peer = new SimplePeer({
-                initiator: false,
-                trickle: false
-              })
-        
-          CS1.p2p.peer.on('error', err => CS1.log('error', err))
-          
-          CS1.log(`Responder peer now signaling.`)
-          CS1.p2p.peer.signal(d.offer)
-          
-          // print out data received from STUN server
-          CS1.p2p.peer.on('signal', answer => {
-            CS1.log(`P2P answer sent to player with socket id : ${d.id}`)
-            CS1.socket.emit('answer', {id:d.id,answer:answer})
-          })
-          
-          CS1.p2p.peer.on('connect', () => {
-            const dataToSend = `I accept the ${d.mode} connection.`
-            CS1.log(`Sending P2P data: ${dataToSend}`)
-            CS1.p2p.peer.send(dataToSend)
-          })
- 
-          CS1.p2p.peer.on('data', data => {
-            CS1.log(`P2P data received: ${data}`)
-          })
-        
-          CS1.p2p.peer.on('stream', stream => {
-            CS1.log('Remote stream received.')
-            CS1.log(stream)
-            CS1.p2p.stream = stream
-            let video = document.querySelector('video')
-            if(!video){
-              video = document.createElement('video')
-              video.setAttribute('crossorigin','anonymous');
-              video.setAttribute('autoplay', true);
-              video.setAttribute('playsinline', true);
-              video.setAttribute('id','peer-video');
-              if ('srcObject' in video) {
-                video.srcObject = stream
-              } else {
-                video.src = window.URL.createObjectURL(stream) // for older browsers
-              }
-              document.body.appendChild(video)
-              if(CS1.p2p.mode=='video')
-              setTimeout( _=>{
-                  video.play();
-
-                  CS1.p2p.videoEntity = document.createElement('a-plane')
-                  CS1.p2p.videoEntity.object3D.position.set(2,0.9,-2)
-                  CS1.p2p.videoEntity.setAttribute('src','#peer-video')
-                  CS1.cam.appendChild(CS1.p2p.videoEntity)
-
-                  
-
-              }, 2000);
-              
-            }
-
+          CS1.p2p.ring(d);
    
           })
           
-          
-        })
+
         
       CS1.socket.on('answer', d=>{
         CS1.log(`P2P answer received from player with socket id : ${d.id}`)
@@ -222,6 +161,100 @@ AFRAME.registerComponent('p2p', {
    
     },
   
+  ring: function(d){
+    // switch main panel to CS1.p2p.peerUI
+    CS1.p2p.peerUI.querySelector('h1').innerHTML = (d.mode=='video')?'🎥Choose Peer🎥':'🔊Choose Peer🔊';
+    const hiddenDiv = document.querySelector('#hidden-div');
+    const mainPanel = document.querySelector('#main');
+    hiddenDiv.appendChild(mainPanel.firstChild);
+    mainPanel.innerHTML = '';
+    mainPanel.appendChild(CS1.p2p.peerUI); 
+    // blink the button of the calling peer
+    CS1.p2p.blink(CS1.otherPlayers[d.id].name)
+    // repeat ringtone
+    // allow 30 seconds to accept, otherwise stop blink and stop ringtone
+    CS1.log(`Ringing notification for call from ${CS1.otherPlayers[d.id].name}.`)
+    CS1.log('Auto-accepting call.');
+    CS1.p2p.accept(d);
+    
+  },
+  
+  accept: function(d){
+    
+    CS1.log('Setting peer as new responder in accept function.')
+          //creating responder peer
+          CS1.p2p.peer = new SimplePeer({
+                initiator: false,
+                trickle: false
+              })
+        
+          CS1.p2p.peer.on('error', err => CS1.log('error', err))
+          
+          CS1.log(`Responder peer now signaling.`)
+          CS1.p2p.peer.signal(d.offer)
+          
+          // print out data received from STUN server
+          CS1.p2p.peer.on('signal', answer => {
+            CS1.log(`P2P answer sent to player with socket id : ${d.id}`)
+            CS1.socket.emit('answer', {id:d.id,answer:answer})
+          })
+          
+          CS1.p2p.peer.on('connect', () => {
+            const dataToSend = `I accept the ${d.mode} connection.`
+            CS1.log(`Sending P2P data: ${dataToSend}`)
+            CS1.p2p.peer.send(dataToSend)
+          })
+ 
+          CS1.p2p.peer.on('data', data => {
+            CS1.log(`P2P data received: ${data}`)
+          })
+        
+          CS1.p2p.peer.on('stream', stream => {
+            CS1.log('Remote stream received.')
+            CS1.log(stream)
+            CS1.p2p.stream = stream
+            let video = document.querySelector('video')
+            if(!video){
+              video = document.createElement('video')
+              video.setAttribute('crossorigin','anonymous');
+              video.setAttribute('autoplay', true);
+              video.setAttribute('playsinline', true);
+              video.setAttribute('id','peer-video');
+              if ('srcObject' in video) {
+                video.srcObject = stream
+              } else {
+                video.src = window.URL.createObjectURL(stream) // for older browsers
+              }
+              document.body.appendChild(video)
+              if(CS1.p2p.mode=='video')
+              setTimeout( _=>{
+                  video.play();
+
+                  CS1.p2p.videoEntity = document.createElement('a-plane')
+                  CS1.p2p.videoEntity.object3D.position.set(2,0.9,-2)
+                  CS1.p2p.videoEntity.setAttribute('src','#peer-video')
+                  CS1.cam.appendChild(CS1.p2p.videoEntity)
+
+                  
+
+              }, 2000);
+              
+            }
+    
+  })
+  
+ 
+    
+  },
+  
+  deny: function(d){},
+  
+  blink: function(name){
+    CS1.log(`Blink ${name} caller button function called.`)
+  },
+  
+  stopBlink: function(name){},
+  
   addVRUI: function(){
     const self = this;
     const mainPanel = document.querySelector('#main');
@@ -241,6 +274,6 @@ AFRAME.registerComponent('p2p', {
   }
   
   
-});
+})
   
 })()
