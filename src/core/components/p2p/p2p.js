@@ -61,9 +61,9 @@ AFRAME.registerComponent('p2p', {
 
           CS1.log(`P2P offer received from ${d.id}`)
         
-          CS1.p2p.ring(d);
+          if(!CS1.p2p.busy) CS1.p2p.ring(d);
    
-          })
+      })
           
 
         
@@ -114,31 +114,27 @@ AFRAME.registerComponent('p2p', {
   call: function(name){
         const self = this;
     
-        CS1.log(`Setting peer as new initiator.`)
-        // set client peer as new initiator
-        // CS1.p2p.peer = new SimplePeer({
-        //   initiator: true,
-        //   trickle: false
-        // })
-        
-        //if(CS1.p2p.mode=='video'||CS1.p2p.mode=='voice')
+       
+      
         navigator.getUserMedia({ video: (CS1.p2p.mode=='video'), audio: true }, gotMedia, () => {})
         
     
         function gotMedia (stream) {
           CS1.log('Got media stream on the initiator end.')
+          CS1.log('Setting peer as new initiator.')
           CS1.p2p.peer = new SimplePeer({
             initiator: true,
             stream: stream,
             trickle: false
           })
           
-          //CS1.p2p.peer.addStream(stream)
+          CS1.p2p.busy = true
           
           // handle error in setting up peer
           CS1.p2p.peer.on('error', err => CS1.log('error', err))
 
           // data received from STUN server
+          // set timeout for 31 seconds then destroy if no connect made
           CS1.p2p.peer.on('signal', offer => {
             CS1.log(`P2P offer sent to ${name}.`);
             CS1.socket.emit('offer', {name:name,offer:offer,mode:CS1.p2p.mode})
@@ -152,6 +148,7 @@ AFRAME.registerComponent('p2p', {
 
           CS1.p2p.peer.on('data', data => {
             CS1.log(`Received data: ${data}`);
+            if(data=='deny')CS1.p2p.busy = false
           })
           
           
@@ -174,6 +171,8 @@ AFRAME.registerComponent('p2p', {
     // repeat ringtone
     // allow 30 seconds to accept, otherwise stop blink and stop ringtone
     CS1.log(`Ringing notification for call from ${CS1.otherPlayers[d.id].name}.`)
+    
+    
     CS1.log('Auto-accepting call.');
     CS1.p2p.accept(d);
     
@@ -182,64 +181,62 @@ AFRAME.registerComponent('p2p', {
   accept: function(d){
     
     CS1.log('Setting peer as new responder in accept function.')
-          //creating responder peer
-          CS1.p2p.peer = new SimplePeer({
-                initiator: false,
-                trickle: false
-              })
+    //creating responder peer
+    CS1.p2p.peer = new SimplePeer({
+      initiator: false,
+      trickle: false
+    })
         
-          CS1.p2p.peer.on('error', err => CS1.log('error', err))
+    CS1.p2p.peer.on('error', err => CS1.log('error', err))
           
-          CS1.log(`Responder peer now signaling.`)
-          CS1.p2p.peer.signal(d.offer)
+    CS1.log(`Responder peer now signaling.`)
+    CS1.p2p.peer.signal(d.offer)
           
-          // print out data received from STUN server
-          CS1.p2p.peer.on('signal', answer => {
-            CS1.log(`P2P answer sent to player with socket id : ${d.id}`)
-            CS1.socket.emit('answer', {id:d.id,answer:answer})
-          })
+    // print out data received from STUN server
+    CS1.p2p.peer.on('signal', answer => {
+      CS1.log(`P2P answer sent to player with socket id : ${d.id}`)
+      CS1.socket.emit('answer', {id:d.id,answer:answer})
+    })
           
-          CS1.p2p.peer.on('connect', () => {
-            const dataToSend = `I accept the ${d.mode} connection.`
-            CS1.log(`Sending P2P data: ${dataToSend}`)
-            CS1.p2p.peer.send(dataToSend)
-          })
+    CS1.p2p.peer.on('connect', () => {
+      CS1.p2p.busy = true;
+      const dataToSend = `I accept the ${d.mode} connection.`
+      CS1.log(`Sending P2P data: ${dataToSend}`)
+      CS1.p2p.peer.send(dataToSend)
+    })
  
-          CS1.p2p.peer.on('data', data => {
-            CS1.log(`P2P data received: ${data}`)
-          })
+    CS1.p2p.peer.on('data', data => {
+      CS1.log(`P2P data received: ${data}`)
+    })
         
-          CS1.p2p.peer.on('stream', stream => {
-            CS1.log('Remote stream received.')
-            CS1.log(stream)
-            CS1.p2p.stream = stream
-            let video = document.querySelector('video')
-            if(!video){
-              video = document.createElement('video')
-              video.setAttribute('crossorigin','anonymous');
-              video.setAttribute('autoplay', true);
-              video.setAttribute('playsinline', true);
-              video.setAttribute('id','peer-video');
-              if ('srcObject' in video) {
-                video.srcObject = stream
-              } else {
-                video.src = window.URL.createObjectURL(stream) // for older browsers
-              }
-              document.body.appendChild(video)
-              if(CS1.p2p.mode=='video')
-              setTimeout( _=>{
-                  video.play();
+    CS1.p2p.peer.on('stream', stream => {
+      CS1.log('Remote stream received.')
+      CS1.p2p.stream = stream
+      let video = document.querySelector('video')
+      if(!video){
+        video = document.createElement('video')
+        video.setAttribute('crossorigin','anonymous');
+        video.setAttribute('autoplay', true);
+        video.setAttribute('playsinline', true);
+        video.setAttribute('id','peer-video');
+      if ('srcObject' in video) {
+        video.srcObject = stream
+      } else {
+        video.src = window.URL.createObjectURL(stream) // for older browsers
+      }
+      document.body.appendChild(video)
+      if(CS1.p2p.mode=='video')
+        setTimeout( _=>{
+            video.play();
 
-                  CS1.p2p.videoEntity = document.createElement('a-plane')
-                  CS1.p2p.videoEntity.object3D.position.set(2,0.9,-2)
-                  CS1.p2p.videoEntity.setAttribute('src','#peer-video')
-                  CS1.cam.appendChild(CS1.p2p.videoEntity)
+            CS1.p2p.videoEntity = document.createElement('a-plane')
+            CS1.p2p.videoEntity.object3D.position.set(2,0.9,-2)
+            CS1.p2p.videoEntity.setAttribute('src','#peer-video')
+            CS1.cam.appendChild(CS1.p2p.videoEntity)                  
 
-                  
-
-              }, 2000);
+        }, 2000);
               
-            }
+      }
     
   })
   
@@ -247,13 +244,37 @@ AFRAME.registerComponent('p2p', {
     
   },
   
-  deny: function(d){},
+  deny: function(d){
+    CS1.p2p.busy = false;
+  },
   
   blink: function(name){
     CS1.log(`Blink ${name} caller button function called.`)
+    const btn = document.querySelector(`#${name}`)
+    if(btn){
+      
+      CS1.p2p.busy = true;
+      CS1.p2p.blinkId = setInterval(e=>{
+        const c = btn.style.backgroundColor;
+        btn.style.backgroundColor = (c=='lime')?'black':'lime'
+      },1000)
+      
+      setTimeout(e=>{
+        if(CS1.p2p.blinkId)CS1.p2p.stopBlink(name)
+      },30000)
+      
+    }
+    
   },
   
-  stopBlink: function(name){},
+  stopBlink: function(name){
+    clearInterval(CS1.p2p.blinkId)
+    CS1.p2p.blinkId = false
+    const btn = document.querySelector(`#${name}`)
+    if(btn){
+      btn.style.backgroundColor = 'black'
+    }
+  },
   
   addVRUI: function(){
     const self = this;
