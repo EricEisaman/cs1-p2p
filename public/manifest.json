@@ -1,0 +1,22 @@
+{
+  "name": "CS1 Peers",
+  "short_name": "CS1 Peers",
+  "description": "Introduction to Computer Science through Game Design and Development.",
+  "icons": [
+    {
+      "sizes": "192x192",
+      "type": "image/png",
+      "src": "https://cdn.glitch.com/376a6bb1-e9b2-4998-af7a-cc4ea70344b8%2FCS1_Clean_logo_192.png?v=1575125392171"
+    },
+    {
+      "sizes": "512x512",
+      "type": "image/png",
+      "src": "https://cdn.glitch.com/376a6bb1-e9b2-4998-af7a-cc4ea70344b8%2FCS1_Clean_logo_512.png?v=1575125392371"
+    }
+  ],
+  "display": "fullscreen",
+  "orientation":"landscape",
+  "background_color": "white",
+  "theme_color": "maroon",
+  "start_url": "/index.html"
+}
