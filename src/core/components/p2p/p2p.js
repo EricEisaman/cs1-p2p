@@ -120,6 +120,7 @@ AFRAME.registerComponent('p2p', {
         
     
         function gotMedia (stream) {
+          
           CS1.log('Got media stream on the initiator end.')
           CS1.log('Setting peer as new initiator.')
           CS1.p2p.peer = new SimplePeer({
@@ -128,17 +129,17 @@ AFRAME.registerComponent('p2p', {
             trickle: false
           })
           
-          CS1.p2p.busy = true
-          
-          // handle error in setting up peer
-          CS1.p2p.peer.on('error', err => CS1.log('error', err))
-
           // data received from STUN server
           // set timeout for 31 seconds then destroy if no connect made
           CS1.p2p.peer.on('signal', offer => {
             CS1.log(`P2P offer sent to ${name}.`);
             CS1.socket.emit('offer', {name:name,offer:offer,mode:CS1.p2p.mode})
           })
+          
+          CS1.p2p.busy = true
+          
+          // handle error in setting up peer
+          CS1.p2p.peer.on('error', err => CS1.log('error', err))
           
           CS1.p2p.peer.on('connect', () => {
             const dataToSend = `Thanks for accepting my ${CS1.p2p.mode} connection request.`
@@ -151,8 +152,12 @@ AFRAME.registerComponent('p2p', {
             if(data=='deny')CS1.p2p.busy = false
           })
           
+          CS1.p2p.peer.on('stream', stream => {
+             CS1.p2p.handleStream(stream);
+          })
+
           
-        }
+        } 
           
         
    
@@ -180,10 +185,16 @@ AFRAME.registerComponent('p2p', {
   
   accept: function(d){
     
+    navigator.getUserMedia({ video: (CS1.p2p.mode=='video'), audio: true }, gotMedia, () => {})
+        
+    
+    function gotMedia (stream) {
+      
     CS1.log('Setting peer as new responder in accept function.')
     //creating responder peer
     CS1.p2p.peer = new SimplePeer({
       initiator: false,
+      stream: stream,
       trickle: false
     })
         
@@ -210,38 +221,12 @@ AFRAME.registerComponent('p2p', {
     })
         
     CS1.p2p.peer.on('stream', stream => {
-      CS1.log('Remote stream received.')
-      CS1.p2p.stream = stream
-      let video = document.querySelector('video')
-      if(!video){
-        video = document.createElement('video')
-        video.setAttribute('crossorigin','anonymous');
-        video.setAttribute('autoplay', true);
-        video.setAttribute('playsinline', true);
-        video.setAttribute('id','peer-video');
-      if ('srcObject' in video) {
-        video.srcObject = stream
-      } else {
-        video.src = window.URL.createObjectURL(stream) // for older browsers
-      }
-      document.body.appendChild(video)
-      if(CS1.p2p.mode=='video')
-        setTimeout( _=>{
-            video.play();
-
-            CS1.p2p.videoEntity = document.createElement('a-plane')
-            CS1.p2p.videoEntity.object3D.position.set(2,0.9,-2)
-            CS1.p2p.videoEntity.setAttribute('src','#peer-video')
-            CS1.cam.appendChild(CS1.p2p.videoEntity)                  
-
-        }, 2000);
-              
-      }
-    
-  })
+       CS1.p2p.handleStream(stream);
+    })
   
- 
-    
+         
+    }//end gotMedia
+       
   },
   
   deny: function(d){
@@ -291,6 +276,38 @@ AFRAME.registerComponent('p2p', {
     });
     li.appendChild(btn);
     m1ul.appendChild(li);
+    
+  },
+  
+  handleStream: function(stream){
+    
+     CS1.log('Remote stream received.')
+        CS1.p2p.stream = stream
+        let video = document.querySelector('video')
+        if(!video){
+          video = document.createElement('video')
+          video.setAttribute('crossorigin','anonymous');
+          video.setAttribute('autoplay', true);
+          video.setAttribute('playsinline', true);
+          video.setAttribute('id','peer-video');
+        if ('srcObject' in video) {
+          video.srcObject = stream
+        } else {
+          video.src = window.URL.createObjectURL(stream) // for older browsers
+        }
+        document.body.appendChild(video)
+        if(CS1.p2p.mode=='video')
+          setTimeout( _=>{
+              video.play();
+
+              CS1.p2p.videoEntity = document.createElement('a-plane')
+              CS1.p2p.videoEntity.object3D.position.set(2,0.9,-2)
+              CS1.p2p.videoEntity.setAttribute('src','#peer-video')
+              CS1.cam.appendChild(CS1.p2p.videoEntity)                  
+
+          }, 2000);
+
+        }
     
   }
   
