@@ -17,6 +17,7 @@ AFRAME.registerComponent('p2p', {
     self.peerUI = document.createElement('span');
     self.peerUI.innerHTML = '<h1>👥Choose Peer👥</h1>';
     self.addVRUI();
+    self.setupRing();
  
     document.addEventListener('gameStart',e=>{
       
@@ -61,7 +62,10 @@ AFRAME.registerComponent('p2p', {
 
           CS1.log(`P2P offer received from ${d.id}`)
         
-          if(!CS1.p2p.busy) CS1.p2p.ring(d);
+          if(!CS1.p2p.busy){
+            CS1.p2p.offerData = d;
+            CS1.p2p.ring(d);
+          } 
    
       })
           
@@ -80,7 +84,14 @@ AFRAME.registerComponent('p2p', {
         b.setAttribute('id', name);
         self.peerUI.appendChild(b);
         b.addEventListener('click',e=>{
-          CS1.p2p.call(name)
+          if(b.blinking&&CS1.p2p.offerData){
+            CS1.p2p.accept(CS1.p2p.offerData);
+            CS1.p2p.ringtone.pause();
+            CS1.p2p.stopBlink(name);
+            CS1.p2p.peerUI.querySelector('h1').innerHTML = (CS1.p2p.mode=='video')?'🎥Choose Peer🎥':'🔊Choose Peer🔊';
+          }else{
+            CS1.p2p.call(name);
+          } 
         })
       }
       
@@ -101,7 +112,15 @@ AFRAME.registerComponent('p2p', {
         if(e.detail.player==CS1.myPlayer)return;
         // remove ui element
         const b = CS1.p2p.peerUI.querySelector(`#${e.detail.player.name}`);
-        if(b)b.remove();
+        if(b){
+          b.remove();
+        }
+        if(e.detail.player.name==CS1.p2p.nameOfConnection){
+          const v = document.getElementById('peer-video');
+          if(v)v.remove();  
+          if(CS1.p2p.videoEntity)CS1.p2p.videoEntity.remove();
+          CS1.p2p.busy = false;
+        }
       })
     
       
@@ -146,6 +165,13 @@ AFRAME.registerComponent('p2p', {
             CS1.p2p.peer.send(dataToSend)
             CS1.log(`Sending data: ${dataToSend}`)
           })
+          
+          CS1.p2p.peer.on('disconnect', () => {
+            CS1.p2p.busy = false;
+            const v = document.getElementById('peer-video');
+            if(v)v.remove(); 
+            if(CS1.p2p.videoEntity)CS1.p2p.videoEntity.remove();
+          })
 
           CS1.p2p.peer.on('data', data => {
             CS1.log(`Received data: ${data}`);
@@ -153,6 +179,7 @@ AFRAME.registerComponent('p2p', {
           })
           
           CS1.p2p.peer.on('stream', stream => {
+             CS1.p2p.nameOfConnection = name;
              CS1.p2p.handleStream(stream);
           })
 
@@ -165,7 +192,7 @@ AFRAME.registerComponent('p2p', {
   
   ring: function(d){
     // switch main panel to CS1.p2p.peerUI
-    CS1.p2p.peerUI.querySelector('h1').innerHTML = (d.mode=='video')?'🎥Choose Peer🎥':'🔊Choose Peer🔊';
+    CS1.p2p.peerUI.querySelector('h1').innerHTML = (d.mode=='video')?'🎥Peer Calling🎥':'🔊Peer Calling🔊';
     const hiddenDiv = document.querySelector('#hidden-div');
     const mainPanel = document.querySelector('#main');
     hiddenDiv.appendChild(mainPanel.firstChild);
@@ -174,12 +201,13 @@ AFRAME.registerComponent('p2p', {
     // blink the button of the calling peer
     CS1.p2p.blink(CS1.otherPlayers[d.id].name)
     // repeat ringtone
+    this.ringtone.play();
     // allow 30 seconds to accept, otherwise stop blink and stop ringtone
     CS1.log(`Ringing notification for call from ${CS1.otherPlayers[d.id].name}.`)
     
     
-    CS1.log('Auto-accepting call.');
-    CS1.p2p.accept(d);
+    //CS1.log('Auto-accepting call.');
+    //CS1.p2p.accept(d);
     
   },
   
@@ -189,6 +217,7 @@ AFRAME.registerComponent('p2p', {
         
     
     function gotMedia (stream) {
+      
       
     CS1.log('Setting peer as new responder in accept function.')
     //creating responder peer
@@ -215,12 +244,20 @@ AFRAME.registerComponent('p2p', {
       CS1.log(`Sending P2P data: ${dataToSend}`)
       CS1.p2p.peer.send(dataToSend)
     })
+      
+    CS1.p2p.peer.on('disconnect', () => {
+      CS1.p2p.busy = false;
+      const v = document.getElementById('peer-video');
+      if(v)v.remove(); 
+      if(CS1.p2p.videoEntity)CS1.p2p.videoEntity.remove();
+    })
  
     CS1.p2p.peer.on('data', data => {
       CS1.log(`P2P data received: ${data}`)
     })
         
     CS1.p2p.peer.on('stream', stream => {
+       CS1.p2p.nameOfConnection = CS1.otherPlayers[d.id].name;
        CS1.p2p.handleStream(stream);
     })
   
@@ -234,6 +271,7 @@ AFRAME.registerComponent('p2p', {
   },
   
   blink: function(name){
+    const self = this;
     CS1.log(`Blink ${name} caller button function called.`)
     const btn = document.querySelector(`#${name}`)
     if(btn){
@@ -242,10 +280,14 @@ AFRAME.registerComponent('p2p', {
       CS1.p2p.blinkId = setInterval(e=>{
         const c = btn.style.backgroundColor;
         btn.style.backgroundColor = (c=='lime')?'black':'lime'
+        btn.blinking = true;
       },1000)
       
       setTimeout(e=>{
-        if(CS1.p2p.blinkId)CS1.p2p.stopBlink(name)
+        if(CS1.p2p.blinkId){
+          self.ringtone.pause();
+          CS1.p2p.stopBlink(name);
+        }
       },30000)
       
     }
@@ -257,7 +299,8 @@ AFRAME.registerComponent('p2p', {
     CS1.p2p.blinkId = false
     const btn = document.querySelector(`#${name}`)
     if(btn){
-      btn.style.backgroundColor = 'black'
+      btn.style.backgroundColor = 'black';
+      btn.blinking = false;
     }
   },
   
@@ -277,6 +320,13 @@ AFRAME.registerComponent('p2p', {
     li.appendChild(btn);
     m1ul.appendChild(li);
     
+  },
+  
+  setupRing: function(){
+    this.ringtone = document.createElement('audio');
+    this.ringtone.setAttribute('src',this.data.ringtone);
+    this.ringtone.setAttribute('loop',true);
+    document.body.appendChild(this.ringtone);
   },
   
   handleStream: function(stream){
