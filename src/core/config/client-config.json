@@ -1,8 +1,7 @@
 {
-  "gameName": "CS1 Peers",
-  "welcomeMsg": "",
-  "playerLeftMsg": "",
-  "playerJoinedMsg":"",
+  "gameName": "Clean Start",
+  "welcomeMsg": "This world can be anything you dream it to be. ...  a carnival ... a haunted house .... a city ... anything ... it is all up to you.  You have the power to create.   May inspiration dwell in you forever.",
+  "playerLeftMsg": "... has packed up and headed for home.",
   "theme": {
     "fontFamily": "Arial",
     "titleFontColor": "#C4A43C",
@@ -69,10 +68,10 @@
   },
   "sounds": {
     "playerJoined": {
-      "url": "https://cdn.glitch.com/83b7f985-f6ce-40dd-ac98-772aff98ebbf%2Fwoosh.mp3?v=1559499927954"
+      "url": "https://cdn.glitch.com/c6f972e4-0e71-47c3-85c6-30f0ce9dcba1%2Fthunder.mp3?v=1562601088647"
     },
     "playerLeft": {
-      "url": "https://cdn.glitch.com/83b7f985-f6ce-40dd-ac98-772aff98ebbf%2Fwoosh.mp3?v=1559499927954"
+      "url": "https://cdn.glitch.com/c6f972e4-0e71-47c3-85c6-30f0ce9dcba1%2Fthunder.mp3?v=1562601088647"
     },
     "jump":{
       "url":"https://cdn.glitch.com/83b7f985-f6ce-40dd-ac98-772aff98ebbf%2Fwoosh.mp3?v=1559499927954"
@@ -85,7 +84,7 @@
     }
   },
   "bgm": {
-    "songs": [],
+    "songs": [326404324],
     "volume": 0.2,
     "playAll": true,
     "initialDelay": 5000

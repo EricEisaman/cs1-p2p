@@ -78,7 +78,7 @@ export default CS1=>{
   socket.on('new-player', newPlayerObject=>{
     if(CS1.debug)console.log('New player object received: ', newPlayerObject);
     if(CS1.game.hasBegun && newPlayerObject.id != CS1.socket.id) {
-      setTimeout(()=>{if(config.playerJoinedMsg)CS1.say(`${newPlayerObject.name} ${config.playerJoinedMsg}`)},1000);
+      setTimeout(()=>{CS1.say(`${newPlayerObject.name} has joined the game!`)},1000);
       CS1.__addOtherPlayer(newPlayerObject);
     }
   });
@@ -192,7 +192,7 @@ export default CS1=>{
     if(CS1.game.hasBegun && CS1.otherPlayers[id]){
       let name = CS1.otherPlayers[id].name;
       CS1.__removePlayer(id);
-      setTimeout(()=>{if(config.playerLeftMsg)CS1.say(`${name} ${config.playerLeftMsg}`)},1500);
+      setTimeout(()=>{CS1.say(`${name} ${config.playerLeftMsg}`)},1500);
     }
   });
   

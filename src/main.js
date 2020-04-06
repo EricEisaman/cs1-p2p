@@ -41,7 +41,7 @@ import vrui from './core/components/vrui/vrui';
 import chat from './core/components/chat';
 import cs1Jukebox from './core/components/cs1-jukebox';
 import jump from './core/components/jump';
-import p2p from './core/components/p2p/p2p';
+import p2p from './core/components/p2p';
 import mycomponents from './core/components/my-components';
 
 //supress console.warn

@@ -8,7 +8,6 @@ addons.push(require("./addons/launchable"));
 addons.push(require("./addons/admin"));
 addons.push(require("./addons/jukebox"));
 addons.push(require("./addons/particles"));
-addons.push(require("./addons/p2p"));
 let myAddonFailed = false;
 try {
   addons.push(require("./addons/my-addon"));
