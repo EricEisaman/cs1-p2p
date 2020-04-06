@@ -13,7 +13,6 @@ export const controls = {
     const avatar2 = config.avatar.models[1];
     const avatar3 = config.avatar.models[2];
     const hiddenDiv = document.createElement('div');
-    hiddenDiv.setAttribute('id','hidden-div');
     hiddenDiv.style.display = 'None';
     document.body.appendChild(hiddenDiv);
     const p1 = document.createElement('span');

@@ -205,13 +205,9 @@ AFRAME.registerComponent('chat', {
             switch(e.keyCode){
               case 13:
                 if(CS1.chatInput.value.startsWith('@')){
-                   const name = CS1.chatInput.value.substring(1 , CS1.chatInput.value.indexOf(' '));
-                   const msg = CS1.chatInput.value.substring(CS1.chatInput.value.indexOf(' ')+1 , CS1.chatInput.value.length);
-                   CS1.log(`dm msg: ${msg}    dm to: ${name}`)
+                   const name = CS1.chatInput.value.substring(1 , CS1.chatInput.value.indexOf(' ')-1);
+                   const msg = CS1.chatInput.value.substring(CS1.chatInput.value.indexOf(' ')+1 , CS1.chatInput.value.length-1);
                    CS1.socket.emit('dm',{msg:msg,name:name});
-                   CS1.chatInput.style.zIndex = -1000;
-                   CS1.chatInput.style.top = '-100px';
-                   CS1.chatInput.blur();
                    return;
                 }
                 CS1.socket.emit('msg',{msg:CS1.chatInput.value});
